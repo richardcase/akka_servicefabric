@@ -4,6 +4,7 @@ using System.Fabric;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ServiceFabric.Services.Runtime;
+using Serilog;
 
 namespace PriceService
 {
@@ -16,6 +17,12 @@ namespace PriceService
         {
             try
             {
+                var logger = new LoggerConfiguration()
+                    .WriteTo.Console()
+                    .MinimumLevel.Information()
+                    .CreateLogger();
+                Serilog.Log.Logger = logger;
+
                 // The ServiceManifest.XML file defines one or more service type names.
                 // Registering a service maps a service type name to a .NET type.
                 // When Service Fabric creates an instance of this service type,

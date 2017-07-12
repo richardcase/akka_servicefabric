@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Fabric;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Akka.Actor;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 
@@ -30,27 +25,10 @@ namespace Lighthouse
             yield return new ServiceInstanceListener(initParams =>
             {
                 _listener = new AkkaClusterCommunicationListener();
-                _listener.Initialize(initParams.CodePackageActivationContext, "SeedEnpoint");
+                _listener.Initialize(initParams.CodePackageActivationContext, "AkkaSeedEnpoint");
 
                 return _listener;
             });
         }
-
-        /// <summary>
-        /// This is the main entry point for your service instance.
-        /// </summary>
-        /// <param name="cancellationToken">Canceled when Service Fabric needs to shut down this service instance.</param>
-        //protected override async Task RunAsync(CancellationToken cancellationToken)
-        //{
-
-        //    var endpoint = Context.CodePackageActivationContext.GetEndpoint("SeedEnpoint");
-
-        //    cancellationToken.ThrowIfCancellationRequested();
-        //    _lighthouseSystem = LighthouseHostFactory.LaunchLighthouse(FabricRuntime.GetNodeContext().IPAddressOrFQDN, endpoint.Port);
-        //    //_lighthouseSystem = LighthouseHostFactory.LaunchLighthouse(null, endpoint.Port);
-
-        //    await Task.Delay(-1, cancellationToken);
-        //}
-
     }
 }

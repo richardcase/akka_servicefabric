@@ -43,7 +43,12 @@ namespace PriceService
         /// <param name="cancellationToken">Canceled when Service Fabric needs to shut down this service instance.</param>
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
-            ActorSystem system = await CreateActorSystem(cancellationToken);
+
+            var port = Context.CodePackageActivationContext.GetEndpoint("AkkaNodeEnpoint").Port;
+            var ipaddress = FabricRuntime.GetNodeContext().IPAddressOrFQDN;
+
+
+            ActorSystem system = await CreateActorSystem(ipaddress, port, cancellationToken);
             //var router = ActorSystem.ActorOf(Props.Empty.WithRouter(FromConfig.Instance), "tasker");
             //SystemActors.CommandProcessor = ActorSystem.ActorOf(Props.Create(() => new CommandProcessor(router)),
             //    "commands");
@@ -61,11 +66,11 @@ namespace PriceService
             }
         }
 
-        private async Task<ActorSystem> CreateActorSystem(CancellationToken cancellationToken)
+        private async Task<ActorSystem> CreateActorSystem(string ipAddress, int? specifiedPort,CancellationToken cancellationToken)
         {
             var systemName = "pricing";
-            var serviceBusApp = "";
-            var serviceBusSvc = "";
+            var sfAppName = "";
+            var sfSvcName = "";
             var section = (AkkaConfigurationSection)ConfigurationManager.GetSection("akka");
             var clusterConfig = section.AkkaConfig;
 
@@ -73,11 +78,20 @@ namespace PriceService
             if (lighthouseConfig != null)
             {
                 systemName = lighthouseConfig.GetString("actorsystem", systemName);
-                serviceBusApp = lighthouseConfig.GetString("sbappname","");
-                serviceBusSvc = lighthouseConfig.GetString("sbsvcname", "");
+                sfAppName = lighthouseConfig.GetString("sfappname","");
+                sfSvcName = lighthouseConfig.GetString("sfsvcname", "");
             }
 
-            var addresses = await GetSeedAddresses(serviceBusApp, serviceBusSvc, cancellationToken);
+            var remoteConfig = clusterConfig.GetConfig("akka.remote");
+            ipAddress = ipAddress ??
+                        remoteConfig.GetString("helios.tcp.public-hostname") ??
+                        "127.0.0.1"; //localhost as a final default
+            int port = specifiedPort ?? remoteConfig.GetInt("helios.tcp.port");
+
+            if (port == 0) throw new ConfigurationException("Need to specify an explicit port for Lighthouse. Found an undefined port or a port value of 0 in App.config.");
+
+
+            var addresses = await GetSeedAddresses(sfAppName, sfSvcName, cancellationToken);
 
             var seeds = clusterConfig.GetStringList("akka.cluster.seed-nodes");
             foreach (string address in addresses)
@@ -93,7 +107,13 @@ namespace PriceService
             var injectedClusterConfigString = seeds.Aggregate("akka.cluster.seed-nodes = [", (current, seed) => current + (@"""" + seed + @""", "));
             injectedClusterConfigString += "]";
 
-            var finalConfig = ConfigurationFactory.ParseString(injectedClusterConfigString).WithFallback(clusterConfig);
+            //var finalConfig = ConfigurationFactory.ParseString(injectedClusterConfigString).WithFallback(clusterConfig);
+
+            var finalConfig = ConfigurationFactory.ParseString(
+                    string.Format(@"akka.remote.helios.tcp.public-hostname = {0} 
+akka.remote.helios.tcp.port = {1}", ipAddress, port))
+                .WithFallback(ConfigurationFactory.ParseString(injectedClusterConfigString))
+                .WithFallback(clusterConfig);
 
             return ActorSystem.Create(systemName, finalConfig);
         }
