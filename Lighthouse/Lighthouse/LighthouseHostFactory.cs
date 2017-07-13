@@ -48,9 +48,9 @@ namespace Lighthouse
                 seeds.Add(selfAddress);
             }
 
-            //try
-            //{
-            //    var otherSeedAddresses = await GetSeedAddresses(sfAppName, sfSvcName, cancellationToken);
+            try
+            {
+                var otherSeedAddresses = await GetSeedAddresses(sfAppName, sfSvcName, cancellationToken);
             //    foreach (string address in otherSeedAddresses)
             //    {
             //        Console.WriteLine("Seed address: {0}", address);
@@ -59,13 +59,13 @@ namespace Lighthouse
             //        //        seeds.Add(address);
             //        //    }
             //    }
-            //}
-            //catch (Exception e)
-            //{
-            //    Console.WriteLine("Ignoring seed error");
-            //    Console.WriteLine(e);
+            }
+            catch (FabricException ex)
+            {
+                Console.WriteLine("Ignoring seed error");
+                Console.WriteLine(ex);
                 
-            //}
+            }
 
 
             var injectedClusterConfigString = seeds.Aggregate("akka.cluster.seed-nodes = [", (current, seed) => current + (@"""" + seed + @""", "));
@@ -103,5 +103,6 @@ akka.remote.helios.tcp.port = {1}", ipAddress, port))
 
             return addresses;
         }
+
     }
 }

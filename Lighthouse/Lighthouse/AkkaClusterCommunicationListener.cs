@@ -40,7 +40,8 @@ namespace Lighthouse
             }
             catch (Exception ex)
             {
-                //TODO:
+                Console.WriteLine("Something went wrong in open async");
+                Console.WriteLine(ex);
                 throw;
             }
         }
